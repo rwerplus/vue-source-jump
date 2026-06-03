@@ -3,6 +3,8 @@
 const assert = require("assert");
 const {
   buildVueSymbolGraph,
+  collectVueReferenceLocationsAt,
+  createWorkspaceExcludeGlob,
   findTemplateReferenceAt,
   findVueDefinitionAt
 } = require("../src/resolver");
@@ -82,5 +84,43 @@ const propertyOffset = source.indexOf("name)");
 
 assert.strictEqual(findTemplateReferenceAt(graph, propertyOffset), null);
 assert.strictEqual(findVueDefinitionAt(graph, source.lastIndexOf('"visible"') + 1), null);
+
+const handleLocations = collectVueReferenceLocationsAt(
+  graph,
+  source.indexOf("function handleClick") + "function ".length
+);
+
+assert.deepStrictEqual(
+  handleLocations.map((location) => location.kind),
+  [
+    "template-reference",
+    "script-definition",
+    "script-reference"
+  ]
+);
+assert.ok(handleLocations.every((location) =>
+  source.slice(location.start, location.end) === "handleClick"
+));
+
+const itemLocations = collectVueReferenceLocationsAt(
+  graph,
+  source.indexOf("item)")
+);
+
+assert.deepStrictEqual(
+  itemLocations.map((location) => location.kind),
+  [
+    "template-local-reference",
+    "template-local-definition"
+  ]
+);
+assert.ok(itemLocations.every((location) =>
+  source.slice(location.start, location.end) === "item"
+));
+
+assert.strictEqual(
+  createWorkspaceExcludeGlob(["node_modules", "dist", "build"]),
+  "**/{node_modules,dist,build}/**"
+);
 
 console.log("symbolGraph.test.js passed");

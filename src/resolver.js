@@ -6,6 +6,7 @@ module.exports = {
   ...require("./imports/exportDefinitions"),
   ...require("./imports/importBindings"),
   ...require("./project/pathResolver"),
+  ...require("./project/excludes"),
   ...require("./project/resolverConfig"),
   ...require("./vue/componentImports"),
   ...require("./vue/componentNames"),

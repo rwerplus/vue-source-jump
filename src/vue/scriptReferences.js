@@ -76,6 +76,36 @@ function findFirstTemplateReference(graph, name) {
   ) || null;
 }
 
+function collectScriptIdentifierReferences(graph, name) {
+  if (!graph || !graph.blocks || !Array.isArray(graph.blocks.scripts) || !name) {
+    return [];
+  }
+
+  const references = [];
+
+  for (const block of graph.blocks.scripts) {
+    const content = graph.text.slice(block.contentStart, block.contentEnd);
+    const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, "g");
+    let match;
+
+    while ((match = pattern.exec(content))) {
+      const start = block.contentStart + match.index;
+      const end = start + name.length;
+
+      if (!isOffsetInIgnoredScriptTrivia(graph.text, block, start)) {
+        references.push({
+          name,
+          start,
+          end,
+          kind: "script"
+        });
+      }
+    }
+  }
+
+  return references;
+}
+
 function findScriptIdentifierAt(text, scriptBlock, offset) {
   if (offset < scriptBlock.contentStart || offset > scriptBlock.contentEnd) {
     return null;
@@ -167,7 +197,12 @@ function isIdentifierPart(char) {
   return /[A-Za-z0-9_$]/.test(char);
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 module.exports = {
+  collectScriptIdentifierReferences,
   findFirstTemplateReference,
   findScriptIdentifierAt,
   findScriptNavigationAt

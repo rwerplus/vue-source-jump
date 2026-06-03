@@ -50,6 +50,14 @@
       {
         "command": "vueSourceJump.showDebugInfo",
         "title": "Vue Source Jump: Show Debug Info"
+      },
+      {
+        "command": "vueSourceJump.nextReference",
+        "title": "Vue Source Jump: Next Reference"
+      },
+      {
+        "command": "vueSourceJump.previousReference",
+        "title": "Vue Source Jump: Previous Reference"
       }
     ],
     "configuration": {
@@ -101,6 +109,22 @@
           "default": 100,
           "minimum": 10,
           "description": "Maximum files returned per workspace component search pattern."
+        },
+        "vueSourceJump.excludeDirectories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "dist",
+            "build",
+            ".git",
+            ".output",
+            ".vite",
+            "coverage"
+          ],
+          "description": "Directory names ignored by workspace searches such as auto component lookup. Build output directories like dist are excluded by default."
         }
       }
     }

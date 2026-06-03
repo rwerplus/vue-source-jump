@@ -26,6 +26,10 @@ Vue Source Jump focuses on practical navigation cases that often fall through th
   - `@click="save"`
   - `:title="title"`
   - `{{ count }}`
+- Navigate between references inside the current Vue SFC:
+  - script definition -> template reference
+  - script reference -> definition
+  - next/previous reference commands cycle through current-file matches
 - Jump from file references with line and column:
   - `src/views/Home.vue:12`
   - `@/components/Foo.vue:8:3`
@@ -129,6 +133,15 @@ You can click:
     "pages",
     "views"
   ],
+  "vueSourceJump.excludeDirectories": [
+    "node_modules",
+    "dist",
+    "build",
+    ".git",
+    ".output",
+    ".vite",
+    "coverage"
+  ],
   "vueSourceJump.maxWorkspaceSearchResults": 100
 }
 ```
@@ -188,6 +201,14 @@ Copies resolver diagnostics for the active file to the clipboard:
 
 Use this command when Ctrl+Click does not show a link.
 
+### Vue Source Jump: Next Reference
+
+Jumps to the next reference of the symbol under the cursor inside the current Vue file.
+
+### Vue Source Jump: Previous Reference
+
+Jumps to the previous reference of the symbol under the cursor inside the current Vue file.
+
 ## Monorepo Support
 
 Vue Source Jump detects the project root from the current file by walking upward and looking for:
@@ -212,6 +233,8 @@ workspace/
 ```
 
 In this case, files under `frontend/src` resolve `@` relative to `frontend`, not the whole workspace.
+
+Workspace searches ignore build output directories by default, including `dist`, so generated files do not appear as duplicate navigation results.
 
 ## Limitations
 

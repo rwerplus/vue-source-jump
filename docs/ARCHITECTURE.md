@@ -22,6 +22,8 @@
   - Template expression and local-scope extraction.
   - Vue SFC symbol graph for Template -> Script definitions.
   - Lightweight Script -> Template and Script reference -> definition navigation.
+  - Current-file reference collection for next/previous navigation.
+  - Workspace-search exclude helpers are under `src/project/excludes.js`.
 
 ## Next Phase
 
@@ -35,5 +37,6 @@ Template <-> Script navigation should keep growing behind Vue-specific modules:
 The provider now asks `symbolGraph` for template and script definitions before
 falling back to older word-based lookup.
 
-The next step is to collect all references for a symbol and add next/previous
-reference commands.
+Next/previous reference commands now use current-file references from
+`symbolGraph`. Future workspace-wide reference search should reuse
+`src/project/excludes.js` so build outputs such as `dist` stay out of results.

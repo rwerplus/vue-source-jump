@@ -5,6 +5,8 @@ const path = require("path");
 const vscode = require("vscode");
 const {
   buildVueSymbolGraph,
+  collectVueReferenceLocationsAt,
+  createWorkspaceExcludeGlob,
   findImportBindingAt,
   findImportSourceAt,
   findFileLineReferenceAt,
@@ -36,7 +38,9 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(selector, provider),
-    vscode.commands.registerCommand("vueSourceJump.showDebugInfo", showDebugInfo)
+    vscode.commands.registerCommand("vueSourceJump.showDebugInfo", showDebugInfo),
+    vscode.commands.registerCommand("vueSourceJump.nextReference", () => navigateReference("next")),
+    vscode.commands.registerCommand("vueSourceJump.previousReference", () => navigateReference("previous"))
   );
 }
 
@@ -212,7 +216,7 @@ async function findWorkspaceComponent(tagName, config, projectRoot, token) {
     ? config.componentSearchRoots
     : [];
   const searchRoots = roots.length > 0 ? roots : ["src"];
-  const exclude = "**/{node_modules,dist,build,.git}/**";
+  const exclude = createWorkspaceExcludeGlob(config.excludeDirectories);
   const hits = [];
 
   for (const root of searchRoots) {
@@ -301,7 +305,16 @@ function readConfig() {
       "pages",
       "views"
     ]),
-    maxWorkspaceSearchResults: config.get("maxWorkspaceSearchResults", 100)
+    maxWorkspaceSearchResults: config.get("maxWorkspaceSearchResults", 100),
+    excludeDirectories: config.get("excludeDirectories", [
+      "node_modules",
+      "dist",
+      "build",
+      ".git",
+      ".output",
+      ".vite",
+      "coverage"
+    ])
   };
 }
 
@@ -330,11 +343,65 @@ function showDebugInfo() {
     `aliases: ${JSON.stringify(resolverConfig.aliases)}`,
     `extensions: ${JSON.stringify(resolverConfig.extensions)}`,
     `configFiles: ${JSON.stringify(resolverConfig.configFiles)}`,
-    `componentSearchRoots: ${JSON.stringify(config.componentSearchRoots)}`
+    `componentSearchRoots: ${JSON.stringify(config.componentSearchRoots)}`,
+    `excludeDirectories: ${JSON.stringify(config.excludeDirectories)}`
   ].join("\n");
 
   vscode.window.showInformationMessage("Vue Source Jump debug info copied to clipboard.");
   vscode.env.clipboard.writeText(message);
+}
+
+function navigateReference(direction) {
+  const editor = vscode.window.activeTextEditor;
+
+  if (!editor || !isVueFile(editor.document.uri.fsPath)) {
+    vscode.window.showInformationMessage("Vue Source Jump: open a Vue file first.");
+    return;
+  }
+
+  const document = editor.document;
+  const text = document.getText();
+  const offset = document.offsetAt(editor.selection.active);
+  const graph = buildVueSymbolGraph(text);
+  const locations = collectVueReferenceLocationsAt(graph, offset);
+
+  if (locations.length <= 1) {
+    vscode.window.showInformationMessage("Vue Source Jump: no other references found.");
+    return;
+  }
+
+  const next = pickReferenceLocation(locations, offset, direction);
+  const position = document.positionAt(next.start);
+
+  editor.selection = new vscode.Selection(position, position);
+  editor.revealRange(
+    new vscode.Range(position, position),
+    vscode.TextEditorRevealType.InCenterIfOutsideViewport
+  );
+}
+
+function pickReferenceLocation(locations, offset, direction) {
+  const sorted = locations
+    .slice()
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  if (direction === "previous") {
+    for (let index = sorted.length - 1; index >= 0; index -= 1) {
+      if (sorted[index].start < offset) {
+        return sorted[index];
+      }
+    }
+
+    return sorted[sorted.length - 1];
+  }
+
+  for (const location of sorted) {
+    if (location.start > offset) {
+      return location;
+    }
+  }
+
+  return sorted[0];
 }
 
 function getExplicitConfigValue(config, key) {
