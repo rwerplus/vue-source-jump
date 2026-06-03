@@ -2,7 +2,7 @@
   "name": "vue-source-jump",
   "version": "0.1.0",
   "displayName": "Vue Source Jump",
-  "description": "Smart Ctrl+Click navigation for Vue imports, aliases, component tags, and template symbols.",
+  "description": "Vue2/Vue3 Ctrl+Click 跳转插件，支持 import、Vite alias、tsconfig paths、组件、template/script 跳转。",
   "publisher": "guofeng",
   "author": "rwerplus",
   "repository": {
@@ -146,7 +146,14 @@
     "import",
     "ctrl-click",
     "go-to-definition",
-    "source-jump"
+    "source-jump",
+    "vue跳转",
+    "vue插件",
+    "vscode vue",
+    "vite alias",
+    "tsconfig paths",
+    "template script",
+    "组件跳转"
   ],
   "license": "MIT",
   "devDependencies": {
