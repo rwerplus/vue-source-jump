@@ -106,6 +106,49 @@ function collectScriptIdentifierReferences(graph, name) {
   return references;
 }
 
+function findScriptMemberAccessAt(text, scriptBlock, offset) {
+  const identifier = findScriptIdentifierAt(text, scriptBlock, offset);
+
+  if (!identifier) {
+    return null;
+  }
+
+  const beforeIdentifier = text.slice(scriptBlock.contentStart, identifier.start);
+  const chainMatch = /([A-Za-z_$][\w$]*(?:\s*\??\.\s*[A-Za-z_$][\w$]*)*)\s*\??\.\s*$/.exec(beforeIdentifier);
+
+  if (!chainMatch) {
+    return null;
+  }
+
+  const chainStart = scriptBlock.contentStart + chainMatch.index;
+  const chainText = chainMatch[1];
+  const names = [];
+  const nameRe = /[A-Za-z_$][\w$]*/g;
+  let match;
+
+  while ((match = nameRe.exec(chainText))) {
+    names.push({
+      name: match[0],
+      start: chainStart + match.index,
+      end: chainStart + match.index + match[0].length
+    });
+  }
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return {
+    baseName: names[0].name,
+    memberName: identifier.name,
+    chain: names.map((item) => item.name).concat(identifier.name),
+    start: names[0].start,
+    end: identifier.end,
+    memberStart: identifier.start,
+    memberEnd: identifier.end
+  };
+}
+
 function findScriptIdentifierAt(text, scriptBlock, offset) {
   if (offset < scriptBlock.contentStart || offset > scriptBlock.contentEnd) {
     return null;
@@ -205,5 +248,6 @@ module.exports = {
   collectScriptIdentifierReferences,
   findFirstTemplateReference,
   findScriptIdentifierAt,
+  findScriptMemberAccessAt,
   findScriptNavigationAt
 };

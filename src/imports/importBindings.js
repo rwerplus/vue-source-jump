@@ -83,6 +83,33 @@ function collectDynamicComponentImports(content) {
   return imports;
 }
 
+function collectImportBindings(text) {
+  const bindings = [];
+  const importRe = /\bimport\s+(?:type\s+)?([\s\S]*?)\s+from\s*["']([^"']+)["']/g;
+  let match;
+
+  while ((match = importRe.exec(text))) {
+    const statementStart = match.index;
+    const clause = match[1];
+    const source = match[2];
+    const clauseStart = statementStart + match[0].indexOf(clause);
+
+    bindings.push(...collectBindingsInImportClause(clause, clauseStart, source));
+  }
+
+  return bindings;
+}
+
+function findImportBindingByLocalName(text, localName) {
+  if (!/^[A-Za-z_$][\w$]*$/.test(localName || "")) {
+    return null;
+  }
+
+  return collectImportBindings(text).find((binding) =>
+    binding.localName === localName
+  ) || null;
+}
+
 function findImportBindingAt(text, offset) {
   const importRe = /\bimport\s+(?:type\s+)?([\s\S]*?)\s+from\s*["']([^"']+)["']/g;
   let match;
@@ -108,7 +135,8 @@ function findImportBindingAt(text, offset) {
   return null;
 }
 
-function findBindingInImportClause(clause, clauseStart, source, offset) {
+function collectBindingsInImportClause(clause, clauseStart, source) {
+  const bindings = [];
   const trimmed = clause.trimStart();
   const leading = clause.length - trimmed.length;
   const firstChar = trimmed[0];
@@ -120,15 +148,17 @@ function findBindingInImportClause(clause, clauseStart, source, offset) {
       const start = clauseStart + leading;
       const end = start + defaultMatch[1].length;
 
-      if (offset >= start && offset <= end) {
-        return {
-          localName: defaultMatch[1],
-          importedName: "default",
-          source,
-          start,
-          end
-        };
-      }
+      bindings.push({
+        localName: defaultMatch[1],
+        importedName: "default",
+        source,
+        start,
+        end,
+        localStart: start,
+        localEnd: end,
+        importedStart: start,
+        importedEnd: end
+      });
     }
   }
 
@@ -138,38 +168,61 @@ function findBindingInImportClause(clause, clauseStart, source, offset) {
     const localStart = clauseStart + namespaceMatch.index + namespaceMatch[0].lastIndexOf(namespaceMatch[1]);
     const localEnd = localStart + namespaceMatch[1].length;
 
-    if (offset >= localStart && offset <= localEnd) {
-      return {
-        localName: namespaceMatch[1],
-        importedName: "*",
-        source,
-        start: localStart,
-        end: localEnd
-      };
-    }
+    bindings.push({
+      localName: namespaceMatch[1],
+      importedName: "*",
+      source,
+      start: localStart,
+      end: localEnd,
+      localStart,
+      localEnd,
+      importedStart: localStart,
+      importedEnd: localEnd
+    });
   }
 
   const namedStart = clause.indexOf("{");
 
   if (namedStart === -1) {
-    return null;
+    return bindings;
   }
 
   const namedEnd = findMatchingBracket(clause, namedStart, "{", "}");
 
   if (namedEnd === -1) {
+    return bindings;
+  }
+
+  bindings.push(...collectNamedImportBindings(
+    clause.slice(namedStart + 1, namedEnd),
+    clauseStart + namedStart + 1,
+    source
+  ));
+
+  return bindings;
+}
+
+function findBindingInImportClause(clause, clauseStart, source, offset) {
+  const binding = collectBindingsInImportClause(clause, clauseStart, source)
+    .find((item) =>
+      (offset >= item.localStart && offset <= item.localEnd) ||
+      (offset >= item.importedStart && offset <= item.importedEnd)
+    );
+
+  if (!binding) {
     return null;
   }
 
-  return findNamedImportBinding(
-    clause.slice(namedStart + 1, namedEnd),
-    clauseStart + namedStart + 1,
-    source,
-    offset
-  );
+  const onLocal = offset >= binding.localStart && offset <= binding.localEnd;
+
+  return Object.assign({}, binding, {
+    start: onLocal ? binding.localStart : binding.importedStart,
+    end: onLocal ? binding.localEnd : binding.importedEnd
+  });
 }
 
-function findNamedImportBinding(content, contentStart, source, offset) {
+function collectNamedImportBindings(content, contentStart, source) {
+  const bindings = [];
   const specifierRe = /\b(?:type\s+)?([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?/g;
   let match;
 
@@ -183,21 +236,20 @@ function findNamedImportBinding(content, contentStart, source, offset) {
       : importedStart;
     const localEnd = localStart + localName.length;
 
-    if (
-      (offset >= importedStart && offset <= importedEnd) ||
-      (offset >= localStart && offset <= localEnd)
-    ) {
-      return {
-        localName,
-        importedName,
-        source,
-        start: offset >= localStart && offset <= localEnd ? localStart : importedStart,
-        end: offset >= localStart && offset <= localEnd ? localEnd : importedEnd
-      };
-    }
+    bindings.push({
+      localName,
+      importedName,
+      source,
+      start: localStart,
+      end: localEnd,
+      localStart,
+      localEnd,
+      importedStart,
+      importedEnd
+    });
   }
 
-  return null;
+  return bindings;
 }
 
 function findImportSourceAt(text, offset) {
@@ -258,7 +310,9 @@ function findSourceLiteralInMatch(matchText, source) {
 
 module.exports = {
   collectDynamicComponentImports,
+  collectImportBindings,
   collectImports,
+  findImportBindingByLocalName,
   findImportBindingAt,
   findImportSourceAt
 };

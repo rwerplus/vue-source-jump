@@ -7,9 +7,11 @@ const {
   buildVueSymbolGraph,
   collectVueReferenceLocationsAt,
   createWorkspaceExcludeGlob,
+  findComponentRefMemberUsageAt,
   findImportBindingAt,
   findImportSourceAt,
   findFileLineReferenceAt,
+  findImportedSymbolUsageAt,
   findTargetSymbolDefinition,
   findVueDefinitionAt,
   findVueSymbolDefinition,
@@ -135,6 +137,8 @@ class VueSourceJumpDefinitionProvider {
       return null;
     }
 
+    const graph = buildVueSymbolGraph(text);
+
     if (inTemplate && config.enableComponentTags) {
       const tag = getTagAtOffset(text, offset, blocks.template);
 
@@ -166,12 +170,45 @@ class VueSourceJumpDefinitionProvider {
       }
     }
 
+    if (config.enableImportSources) {
+      const importedUsage = resolveImportedSymbolUsage(
+        document.uri.fsPath,
+        text,
+        offset,
+        blocks,
+        graph,
+        projectRoot,
+        resolverConfig,
+        workspaceRoot
+      );
+
+      if (importedUsage) {
+        return importedUsage;
+      }
+    }
+
     if (!config.enableTemplateSymbols) {
       return null;
     }
 
+    const componentRefMember = await resolveComponentRefMemberUsage(
+      document,
+      text,
+      offset,
+      blocks,
+      config,
+      projectRoot,
+      resolverConfig,
+      workspaceRoot,
+      token
+    );
+
+    if (componentRefMember) {
+      return componentRefMember;
+    }
+
     const graphDefinition = findVueDefinitionAt(
-      buildVueSymbolGraph(text),
+      graph,
       offset
     );
 
@@ -252,6 +289,153 @@ async function findWorkspaceComponent(tagName, config, projectRoot, token) {
   candidates.sort((a, b) => scoreComponentPath(a, tagName) - scoreComponentPath(b, tagName));
 
   return candidates[0] || null;
+}
+
+function resolveImportedSymbolUsage(
+  ownerFile,
+  text,
+  offset,
+  blocks,
+  graph,
+  projectRoot,
+  resolverConfig,
+  workspaceRoot
+) {
+  const usage = findImportedSymbolUsageAt(text, offset, blocks, graph);
+
+  if (!usage) {
+    return null;
+  }
+
+  return resolveImportBindingTarget(
+    usage.binding,
+    ownerFile,
+    projectRoot,
+    resolverConfig,
+    workspaceRoot
+  );
+}
+
+function resolveImportBindingTarget(
+  binding,
+  ownerFile,
+  projectRoot,
+  resolverConfig,
+  workspaceRoot
+) {
+  const target = resolveFileReferencePath(
+    binding.source,
+    ownerFile,
+    projectRoot,
+    resolverConfig.aliases,
+    workspaceRoot,
+    resolverConfig.extensions
+  );
+
+  if (!target) {
+    return null;
+  }
+
+  const targetOffset = findImportedTargetOffset(
+    target,
+    binding.importedName,
+    binding.localName
+  );
+
+  if (typeof targetOffset === "number") {
+    return createLocationFromFileOffset(target, targetOffset);
+  }
+
+  return createLocation(target, 1, 1);
+}
+
+function findImportedTargetOffset(file, importedName, localName) {
+  const targetOffset = findTargetSymbolDefinition(file, importedName);
+
+  if (typeof targetOffset === "number") {
+    return targetOffset;
+  }
+
+  if (!isVueFile(file) || !fs.existsSync(file)) {
+    return null;
+  }
+
+  const content = fs.readFileSync(file, "utf8");
+  const names = unique([
+    importedName !== "default" && importedName !== "*" ? importedName : null,
+    localName
+  ]).filter(Boolean);
+
+  for (const name of names) {
+    const offset = findVueSymbolDefinition(content, name);
+
+    if (typeof offset === "number") {
+      return offset;
+    }
+  }
+
+  return null;
+}
+
+async function resolveComponentRefMemberUsage(
+  document,
+  text,
+  offset,
+  blocks,
+  config,
+  projectRoot,
+  resolverConfig,
+  workspaceRoot,
+  token
+) {
+  const usage = findComponentRefMemberUsageAt(text, offset, blocks);
+
+  if (!usage || !tagLooksLikeComponent(usage.componentRef.tagName)) {
+    return null;
+  }
+
+  const target = resolveComponentFromImports(
+    text,
+    usage.componentRef.tagName,
+    document.uri.fsPath,
+    projectRoot,
+    resolverConfig.aliases,
+    workspaceRoot,
+    resolverConfig.extensions
+  ) || await findWorkspaceComponent(
+    usage.componentRef.tagName,
+    config,
+    projectRoot,
+    token
+  );
+
+  if (!target) {
+    return null;
+  }
+
+  const targetOffset = findVueComponentMemberDefinition(
+    target,
+    usage.memberAccess.memberName
+  );
+
+  if (typeof targetOffset === "number") {
+    return createLocationFromFileOffset(target, targetOffset);
+  }
+
+  return createLocation(target, 1, 1);
+}
+
+function findVueComponentMemberDefinition(file, memberName) {
+  if (!file || !memberName || !fs.existsSync(file)) {
+    return null;
+  }
+
+  if (!isVueFile(file)) {
+    return findTargetSymbolDefinition(file, memberName);
+  }
+
+  const content = fs.readFileSync(file, "utf8");
+  return findVueSymbolDefinition(content, memberName);
 }
 
 function createLocation(file, line, column) {

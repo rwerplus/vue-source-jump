@@ -19,9 +19,14 @@ Vue Source Jump focuses on practical navigation cases that often fall through th
   - `VideoPlayer` in `import VideoPlayer from '@/components/VideoPlayer/index.vue'`
   - `encryptParams` in `import { encryptParams } from '@/utils/routeParams'`
   - named imports are resolved to the exported symbol when possible
+- Jump from imported symbols at their usage sites:
+  - `getAlarmVideo()` -> `@/api/alarm/alarm`
+  - `processFileUrl()` -> `/@/utils/minioUrlHelper`
 - Jump from Vue template component tags:
   - `<VideoPlayer />`
   - `<ledger-lazy-tree-select />`
+- Jump from Vue 3 component ref method calls to the child component:
+  - `alertImageFramer.value.downloadCanvasAsImage()` -> `<AlertImageFramer ref="alertImageFramer" />`
 - Jump from template expressions to same-file script definitions:
   - `@click="save"`
   - `:title="title"`
@@ -82,6 +87,9 @@ import { getPointType, getPointPage } from '@/api/point/point'
 import VideoPlayer from '@/components/VideoPlayer/index.vue'
 import useSystemStore from '/@/store/modules/system'
 import { encryptParams } from '@/utils/routeParams'
+
+getPointPage()
+encryptParams({ id: 1 })
 ```
 
 You can click:
@@ -91,21 +99,28 @@ You can click:
 - `VideoPlayer`
 - `useSystemStore`
 - `encryptParams`
+- `getPointPage` and `encryptParams` at their call sites
 - any local resolvable import path string
 
 Vue templates are supported too:
 
 ```vue
 <template>
-  <VideoPlayer :src="videoUrl" @ready="handleReady" />
+  <VideoPlayer ref="videoPlayer" :src="videoUrl" @ready="handleReady" />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import VideoPlayer from '@/components/VideoPlayer/index.vue'
 
+const videoPlayer = ref(null)
 const videoUrl = ''
 
 function handleReady() {}
+
+function play() {
+  videoPlayer.value.play()
+}
 </script>
 ```
 
@@ -114,6 +129,7 @@ You can click:
 - `VideoPlayer` in the template
 - `videoUrl`
 - `handleReady`
+- `play` in `videoPlayer.value.play()` when the child component defines it
 
 ## Configuration
 
