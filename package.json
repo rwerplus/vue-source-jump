@@ -106,7 +106,7 @@
     }
   },
   "scripts": {
-    "check": "node --check src/extension.js && node --check src/resolver.js",
+    "check": "node scripts/check-syntax.js",
     "test": "node test/resolver.test.js",
     "package": "vsce package",
     "publish": "vsce publish"

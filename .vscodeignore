@@ -1,5 +1,7 @@
 .git/**
 .vscode/**
+docs/**
+scripts/**
 test/**
 node_modules/**
 *.vsix
