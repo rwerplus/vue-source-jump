@@ -1,48 +1,124 @@
 # Vue Source Jump
 
-这是一个 VS Code Extension。它给 Vue2/Vue3 项目补充 `Ctrl + 鼠标左键` / `Go to Definition` 跳转能力。
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/rwerplus.vue-source-jump?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=rwerplus.vue-source-jump)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/rwerplus.vue-source-jump)](https://marketplace.visualstudio.com/items?itemName=rwerplus.vue-source-jump)
+[![License](https://img.shields.io/github/license/rwerplus/vue-source-jump)](https://github.com/rwerplus/vue-source-jump/blob/master/LICENSE)
 
-## 支持的跳转
+Smart Ctrl+Click source navigation for Vue projects in VS Code.
 
-- 在 `.vue` 模板中点击组件标签：`<MyCard>`、`<my-card>` 跳到组件文件。
-- 支持 Vue2 `components: { MyCard }`、Vue3 `<script setup>` import、普通 import、`defineAsyncComponent(() => import(...))`。
-- 在模板表达式里点击变量或方法：`@click="save"`、`:title="title"`、`{{ count }}` 跳到同文件 `<script>` / `<script setup>` 中的定义行。
-- 在 import/export/require 的路径字符串上点击：`@/assets/a.png`、`/@/components/Foo.vue`、`../components/Dialog.vue`、无后缀 `@/services/foo` 都会解析到文件。
-- 在 import 绑定名上点击：`import VideoPlayer from '@/components/VideoPlayer/index.vue'` 里的 `VideoPlayer`、`import { encryptParams } from '@/utils/routeParams'` 里的 `encryptParams` 都能跳转；named import 会优先跳到目标文件里的对应 export 定义。
-- 点击文本形式的文件行号：`src/views/Home.vue:12:3`、`@/components/MyCard.vue:8` 跳到指定行列。
+Vue Source Jump focuses on practical navigation cases that often fall through the cracks in Vue projects: Vite aliases, `tsconfig` paths, import bindings, component files, and template symbols.
 
-## 调试运行
+## Features
 
-在 VS Code 中打开这个目录，然后按 `F5`，会启动一个 Extension Development Host。
+- Jump from import source strings:
+  - `@/components/Foo.vue`
+  - `/@/store/modules/user`
+  - `../components/Dialog.vue`
+  - `@/assets/images/empty.png`
+- Jump from import bindings:
+  - `VideoPlayer` in `import VideoPlayer from '@/components/VideoPlayer/index.vue'`
+  - `encryptParams` in `import { encryptParams } from '@/utils/routeParams'`
+  - named imports are resolved to the exported symbol when possible
+- Jump from Vue template component tags:
+  - `<VideoPlayer />`
+  - `<ledger-lazy-tree-select />`
+- Jump from template expressions to same-file script definitions:
+  - `@click="save"`
+  - `:title="title"`
+  - `{{ count }}`
+- Jump from file references with line and column:
+  - `src/views/Home.vue:12`
+  - `@/components/Foo.vue:8:3`
+- Understand project config automatically:
+  - `vite.config.ts/js/mjs/cjs`
+  - `tsconfig.json`
+  - `tsconfig.app.json`
+  - `tsconfig.base.json`
+  - `jsconfig.json`
 
-在新窗口里打开一个 Vue 项目，试一下：
+## Requirements
+
+This extension is designed to work alongside the official Vue language extension:
+
+- [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+
+Vue Source Jump is not a replacement for Vue (Official). Keep Vue (Official) installed for Vue SFC syntax highlighting, TypeScript support, diagnostics, completion, formatting, and the rest of the Vue language experience.
+
+## Installation
+
+### From VS Code Marketplace
+
+1. Open VS Code.
+2. Open Extensions.
+3. Search for `Vue Source Jump`.
+4. Install the extension.
+
+Or install by extension id:
+
+```text
+rwerplus.vue-source-jump
+```
+
+### From VSIX
+
+```bash
+code --install-extension vue-source-jump-0.1.0.vsix
+```
+
+## Usage
+
+Hold `Ctrl` and click a supported symbol or path.
+
+On macOS, VS Code may use `Cmd` for Go to Definition depending on your keybinding settings.
+
+Examples:
+
+```ts
+import { getPointType, getPointPage } from '@/api/point/point'
+import VideoPlayer from '@/components/VideoPlayer/index.vue'
+import useSystemStore from '/@/store/modules/system'
+import { encryptParams } from '@/utils/routeParams'
+```
+
+You can click:
+
+- `getPointType`
+- `getPointPage`
+- `VideoPlayer`
+- `useSystemStore`
+- `encryptParams`
+- any local resolvable import path string
+
+Vue templates are supported too:
 
 ```vue
 <template>
-  <my-card :title="title" @click="save" />
+  <VideoPlayer :src="videoUrl" @ready="handleReady" />
 </template>
 
-<script>
-import MyCard from "@/components/MyCard.vue";
+<script setup lang="ts">
+import VideoPlayer from '@/components/VideoPlayer/index.vue'
 
-export default {
-  components: { MyCard },
-  props: {
-    title: String
-  },
-  methods: {
-    save() {}
-  }
-};
+const videoUrl = ''
+
+function handleReady() {}
 </script>
 ```
 
-按住 `Ctrl` 点击 `my-card`、`title`、`save`，VS Code 会走本扩展注册的 DefinitionProvider。
+You can click:
 
-## 配置
+- `VideoPlayer` in the template
+- `videoUrl`
+- `handleReady`
+
+## Configuration
 
 ```json
 {
+  "vueSourceJump.enableImportSources": true,
+  "vueSourceJump.enableComponentTags": true,
+  "vueSourceJump.enableTemplateSymbols": true,
+  "vueSourceJump.enableFileLineLinks": true,
   "vueSourceJump.aliases": {
     "@": "src",
     "~": "src"
@@ -53,29 +129,130 @@ export default {
     "pages",
     "views"
   ],
-  "vueSourceJump.enableComponentTags": true,
-  "vueSourceJump.enableTemplateSymbols": true,
-  "vueSourceJump.enableImportSources": true,
-  "vueSourceJump.enableFileLineLinks": true
+  "vueSourceJump.maxWorkspaceSearchResults": 100
 }
 ```
 
-扩展会自动读取当前前端项目根目录下的配置：
+### Alias Resolution
 
-- `vite.config.ts/js/mjs/cjs` 中的 `resolve.alias` 和 `resolve.extensions`
-- `tsconfig.json`、`tsconfig.app.json`、`tsconfig.base.json`、`jsconfig.json` 中的 `compilerOptions.paths`
+Vue Source Jump automatically reads aliases and extensions from project config.
 
-配置合并优先级是：内置默认值 < tsconfig/jsconfig < Vite < VS Code 手动设置。
+Supported Vite config fields:
 
-## 没有 Ctrl+Click 高亮时
+```ts
+export default {
+  resolve: {
+    alias: {
+      '/@': path.resolve(__dirname, './src'),
+      '~': path.resolve(__dirname, './'),
+      '@': path.resolve(__dirname, './src')
+    },
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
+  }
+}
+```
 
-先确认扩展真的在运行：
+Supported TypeScript config fields:
 
-- 开发调试时，要在这个扩展工程里按 `F5`，然后在弹出的 Extension Development Host 新窗口中打开你的 Vue 项目。
-- 如果你只是普通打开前后端工作区，这个本地扩展不会自动生效，除非已经打包成 `.vsix` 并安装。
-- 在 Vue 文件里打开命令面板，执行 `Vue Source Jump: Show Debug Info`。它会把当前识别到的 `workspaceRoot`、`projectRoot`、`aliases` 复制到剪贴板。
-- 如果你的前端在 `frontend/` 目录下，正常情况下 `projectRoot` 应该是 `.../frontend`，`@` 会自动按 `frontend/src` 解析。
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "/@/*": ["src/*"],
+      "@/*": ["src/*"]
+    }
+  }
+}
+```
 
-## 说明
+Config merge priority:
 
-这个扩展不替代 Volar/Vetur，它只是补一个轻量跳转层。复杂 TypeScript 类型推导、跨文件变量语义分析，仍然建议交给 Volar。
+```text
+built-in defaults < tsconfig/jsconfig < Vite config < VS Code settings
+```
+
+## Commands
+
+### Vue Source Jump: Show Debug Info
+
+Copies resolver diagnostics for the active file to the clipboard:
+
+- active file
+- language id
+- workspace root
+- detected project root
+- resolved aliases
+- resolved extensions
+- config files used
+
+Use this command when Ctrl+Click does not show a link.
+
+## Monorepo Support
+
+Vue Source Jump detects the project root from the current file by walking upward and looking for:
+
+- `vite.config.*`
+- `vue.config.js`
+- `nuxt.config.*`
+- `tsconfig.json`
+- `jsconfig.json`
+- `package.json`
+
+This helps aliases resolve correctly in workspaces such as:
+
+```text
+workspace/
+  frontend/
+    package.json
+    vite.config.ts
+    src/
+  backend/
+    package.json
+```
+
+In this case, files under `frontend/src` resolve `@` relative to `frontend`, not the whole workspace.
+
+## Limitations
+
+- External package imports such as `element-plus`, `@vueuse/core`, `lodash-es`, and `json-bigint` are intentionally left to VS Code and TypeScript.
+- Complex runtime alias logic in custom Vite config may not be fully understood.
+- Named import navigation is best-effort. It supports common `export function`, `export const`, `export type`, `export interface`, and `export { local as exported }` patterns.
+- This extension does not provide completion, diagnostics, formatting, or type checking. Use Vue (Official) for those features.
+
+## Development
+
+```bash
+npm install
+npm run check
+npm test
+```
+
+Run the extension locally:
+
+1. Open this repository in VS Code.
+2. Press `F5`.
+3. In the Extension Development Host window, open a Vue project.
+4. Try Ctrl+Click on imports, component tags, and template symbols.
+
+Package a VSIX:
+
+```bash
+npm run package
+```
+
+Publish:
+
+```bash
+npm run publish
+```
+
+## Repository
+
+- GitHub: <https://github.com/rwerplus/vue-source-jump>
+- Issues: <https://github.com/rwerplus/vue-source-jump/issues>
+- Marketplace: <https://marketplace.visualstudio.com/items?itemName=rwerplus.vue-source-jump>
+
+## License
+
+MIT
