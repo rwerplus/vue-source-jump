@@ -4,10 +4,12 @@ const fs = require("fs");
 const path = require("path");
 const vscode = require("vscode");
 const {
+  buildVueSymbolGraph,
   findImportBindingAt,
   findImportSourceAt,
   findFileLineReferenceAt,
   findTargetSymbolDefinition,
+  findVueDefinitionAt,
   findVueSymbolDefinition,
   getTagAtOffset,
   isVueFile,
@@ -160,6 +162,18 @@ class VueSourceJumpDefinitionProvider {
 
     if (!config.enableTemplateSymbols) {
       return null;
+    }
+
+    const graphDefinition = findVueDefinitionAt(
+      buildVueSymbolGraph(text),
+      offset
+    );
+
+    if (graphDefinition && graphDefinition.target) {
+      return new vscode.Location(
+        document.uri,
+        document.positionAt(graphDefinition.target.start)
+      );
     }
 
     const wordRange = document.getWordRangeAtPosition(

@@ -2,6 +2,7 @@
 
 const assert = require("assert");
 const {
+  findTemplateLocalDeclarationAt,
   findTemplateLocalDefinition,
   isTemplateLocalReference,
   parseTemplateExpressions,
@@ -102,6 +103,10 @@ const rowLocal = findTemplateLocalDefinition(result.locals, rowReference);
 assert.ok(rowLocal);
 assert.strictEqual(rowLocal.kind, "slot");
 assert.strictEqual(isTemplateLocalReference(result.locals, rowReference), true);
+assert.strictEqual(
+  findTemplateLocalDeclarationAt(result.locals, source.indexOf("(item, index) in list") + 1).name,
+  "item"
+);
 assert.strictEqual(
   isTemplateLocalReference(result.locals, byName(result.references, "visible")[0]),
   false

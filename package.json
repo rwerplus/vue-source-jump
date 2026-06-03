@@ -107,7 +107,7 @@
   },
   "scripts": {
     "check": "node scripts/check-syntax.js",
-    "test": "node test/resolver.test.js && node test/templateExpressions.test.js",
+    "test": "node test/resolver.test.js && node test/templateExpressions.test.js && node test/symbolGraph.test.js",
     "package": "vsce package",
     "publish": "vsce publish"
   },

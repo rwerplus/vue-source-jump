@@ -27,12 +27,21 @@ function findTemplateLocalAtOffset(locals, name, offset) {
   return candidates[0] || null;
 }
 
+function findTemplateLocalDeclarationAt(locals, offset) {
+  const candidates = (Array.isArray(locals) ? locals : [])
+    .filter((local) => offset >= local.start && offset <= local.end)
+    .sort((a, b) => (a.end - a.start) - (b.end - b.start));
+
+  return candidates[0] || null;
+}
+
 function isTemplateLocalReference(locals, reference) {
   return Boolean(findTemplateLocalDefinition(locals, reference));
 }
 
 module.exports = {
   findTemplateLocalAtOffset,
+  findTemplateLocalDeclarationAt,
   findTemplateLocalDefinition,
   isTemplateLocalReference
 };
