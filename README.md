@@ -1,7 +1,7 @@
 # Vue Source Jump
 
-[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/rwerplus.vue-source-jump?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=rwerplus.vue-source-jump)
-[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/rwerplus.vue-source-jump)](https://marketplace.visualstudio.com/items?itemName=rwerplus.vue-source-jump)
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/guofeng.vue-source-jump?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=guofeng.vue-source-jump)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/guofeng.vue-source-jump)](https://marketplace.visualstudio.com/items?itemName=guofeng.vue-source-jump)
 [![License](https://img.shields.io/github/license/rwerplus/vue-source-jump)](https://github.com/rwerplus/vue-source-jump/blob/master/LICENSE)
 
 Smart Ctrl+Click source navigation for Vue projects in VS Code.
@@ -65,7 +65,7 @@ Vue Source Jump is not a replacement for Vue (Official). Keep Vue (Official) ins
 Or install by extension id:
 
 ```text
-rwerplus.vue-source-jump
+guofeng.vue-source-jump
 ```
 
 ### From VSIX
@@ -290,7 +290,7 @@ npm run publish
 
 - GitHub: <https://github.com/rwerplus/vue-source-jump>
 - Issues: <https://github.com/rwerplus/vue-source-jump/issues>
-- Marketplace: <https://marketplace.visualstudio.com/items?itemName=rwerplus.vue-source-jump>
+- Marketplace: <https://marketplace.visualstudio.com/items?itemName=guofeng.vue-source-jump>
 
 ## License
 

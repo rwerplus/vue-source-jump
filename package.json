@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "displayName": "Vue Source Jump",
   "description": "Smart Ctrl+Click navigation for Vue imports, aliases, component tags, and template symbols.",
-  "publisher": "rwerplus",
+  "publisher": "guofeng",
   "author": "rwerplus",
   "repository": {
     "type": "git",
