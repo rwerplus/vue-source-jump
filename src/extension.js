@@ -124,12 +124,14 @@ class VueSourceJumpDefinitionProvider {
     }
 
     const blocks = parseVueBlocks(text);
+    const inTemplate = blocks.template && isInside(offset, blocks.template);
+    const inScript = blocks.scripts.some((block) => isInside(offset, block));
 
-    if (!blocks.template || !isInside(offset, blocks.template)) {
+    if (!inTemplate && !inScript) {
       return null;
     }
 
-    if (config.enableComponentTags) {
+    if (inTemplate && config.enableComponentTags) {
       const tag = getTagAtOffset(text, offset, blocks.template);
 
       if (tag && tagLooksLikeComponent(tag.name)) {
@@ -176,23 +178,27 @@ class VueSourceJumpDefinitionProvider {
       );
     }
 
-    const wordRange = document.getWordRangeAtPosition(
-      position,
-      /[A-Za-z_$][\w$]*/
-    );
+    if (inTemplate) {
+      const wordRange = document.getWordRangeAtPosition(
+        position,
+        /[A-Za-z_$][\w$]*/
+      );
 
-    if (!wordRange) {
-      return null;
+      if (!wordRange) {
+        return null;
+      }
+
+      const word = document.getText(wordRange);
+      const symbolOffset = findVueSymbolDefinition(text, word);
+
+      if (symbolOffset == null) {
+        return null;
+      }
+
+      return new vscode.Location(document.uri, document.positionAt(symbolOffset));
     }
 
-    const word = document.getText(wordRange);
-    const symbolOffset = findVueSymbolDefinition(text, word);
-
-    if (symbolOffset == null) {
-      return null;
-    }
-
-    return new vscode.Location(document.uri, document.positionAt(symbolOffset));
+    return null;
   }
 }
 

@@ -7,6 +7,7 @@ const {
   findTemplateLocalDefinition
 } = require("./templateScope");
 const { findVueSymbolDefinition } = require("./scriptDefinitions");
+const { findScriptNavigationAt } = require("./scriptReferences");
 
 function buildVueSymbolGraph(text) {
   const blocks = parseVueBlocks(text);
@@ -20,14 +21,21 @@ function buildVueSymbolGraph(text) {
 }
 
 function findVueDefinitionAt(graph, offset) {
-  if (!graph || !graph.blocks || !graph.blocks.template) {
+  if (!graph || !graph.blocks) {
     return null;
   }
 
-  if (!isInside(offset, graph.blocks.template)) {
-    return null;
+  if (
+    graph.blocks.template &&
+    isInside(offset, graph.blocks.template)
+  ) {
+    return findTemplateDefinitionAt(graph, offset);
   }
 
+  return findScriptNavigationAt(graph, offset);
+}
+
+function findTemplateDefinitionAt(graph, offset) {
   const localDeclaration = findTemplateLocalDeclarationAt(
     graph.template.locals,
     offset

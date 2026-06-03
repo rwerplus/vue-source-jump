@@ -10,6 +10,7 @@ module.exports = {
   ...require("./vue/componentImports"),
   ...require("./vue/componentNames"),
   ...require("./vue/scriptDefinitions"),
+  ...require("./vue/scriptReferences"),
   ...require("./vue/symbolGraph"),
   ...require("./vue/templateExpressions"),
   ...require("./vue/templateScope")

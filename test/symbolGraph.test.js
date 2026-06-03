@@ -26,6 +26,9 @@ const user = reactive({ name: '' })
 
 function handleClick(item) {}
 function formatName(name) {}
+const disabledText = isDisabled ? 'yes' : 'no'
+handleClick(list.value[0])
+const label = "visible"
 </script>
 `;
 
@@ -43,6 +46,18 @@ function definitionAt(fragment, expectedTarget, expectedKind, delta) {
   );
 }
 
+function definitionAtLast(fragment, expectedTarget, expectedKind, delta) {
+  const offset = source.lastIndexOf(fragment) + (delta || 0);
+  const definition = findVueDefinitionAt(graph, offset);
+
+  assert.ok(definition, `Expected definition for last ${fragment}`);
+  assert.strictEqual(definition.kind, expectedKind);
+  assert.strictEqual(
+    source.slice(definition.target.start, definition.target.start + expectedTarget.length),
+    expectedTarget
+  );
+}
+
 definitionAt("visible", "visible", "script-symbol");
 definitionAt("isDisabled", "isDisabled", "script-symbol");
 definitionAt("handleClick(item)", "handleClick", "script-symbol");
@@ -51,6 +66,12 @@ definitionAt("item in list", "item", "template-local");
 definitionAt("list", "list", "script-symbol");
 definitionAt("formatName(user.name)", "formatName", "script-symbol");
 definitionAt("user.name", "user", "script-symbol");
+definitionAt("const visible", "visible", "template-reference", "const ".length);
+definitionAt("const list", "list", "template-reference", "const ".length);
+definitionAt("function handleClick", "handleClick", "template-reference", "function ".length);
+definitionAtLast("isDisabled", "isDisabled", "script-symbol");
+definitionAtLast("handleClick", "handleClick", "script-symbol");
+definitionAtLast("list.value", "list", "script-symbol");
 
 const itemReference = findTemplateReferenceAt(graph, source.indexOf("item)"));
 
@@ -60,5 +81,6 @@ assert.strictEqual(itemReference.name, "item");
 const propertyOffset = source.indexOf("name)"); 
 
 assert.strictEqual(findTemplateReferenceAt(graph, propertyOffset), null);
+assert.strictEqual(findVueDefinitionAt(graph, source.lastIndexOf('"visible"') + 1), null);
 
 console.log("symbolGraph.test.js passed");

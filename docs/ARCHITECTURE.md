@@ -21,6 +21,7 @@
   - Current lightweight Vue script symbol definition lookup.
   - Template expression and local-scope extraction.
   - Vue SFC symbol graph for Template -> Script definitions.
+  - Lightweight Script -> Template and Script reference -> definition navigation.
 
 ## Next Phase
 
@@ -29,9 +30,10 @@ Template <-> Script navigation should keep growing behind Vue-specific modules:
 - `src/vue/scriptReferences.js`
 - `src/vue/symbolGraph.js`
 
-`templateExpressions.js`, `templateScope.js`, and `symbolGraph.js` provide the
-first half of the data model. The provider now asks `symbolGraph` for template
-definitions before falling back to older word-based lookup.
+`templateExpressions.js`, `templateScope.js`, `scriptReferences.js`, and
+`symbolGraph.js` provide the first version of the Vue SFC navigation model.
+The provider now asks `symbolGraph` for template and script definitions before
+falling back to older word-based lookup.
 
-The next step is to add script reference collection and let `symbolGraph`
-answer Script -> Template and Script -> Script reference navigation.
+The next step is to collect all references for a symbol and add next/previous
+reference commands.
