@@ -1,0 +1,8 @@
+.git/**
+.vscode/**
+test/**
+node_modules/**
+*.vsix
+.gitignore
+GITHUB_REPO_INFO.md
+package-lock.json

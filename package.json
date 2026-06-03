@@ -1,0 +1,130 @@
+{
+  "name": "vue-source-jump",
+  "version": "0.1.0",
+  "displayName": "Vue Source Jump",
+  "description": "Smart Ctrl+Click navigation for Vue imports, aliases, component tags, and template symbols.",
+  "publisher": "rwerplus",
+  "author": "rwerplus",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rwerplus/vue-source-jump.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rwerplus/vue-source-jump/issues"
+  },
+  "homepage": "https://github.com/rwerplus/vue-source-jump#readme",
+  "qna": "https://github.com/rwerplus/vue-source-jump/issues",
+  "galleryBanner": {
+    "color": "#0f172a",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:vue",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "vue",
+        "aliases": [
+          "Vue",
+          "vue"
+        ],
+        "extensions": [
+          ".vue"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "vueSourceJump.showDebugInfo",
+        "title": "Vue Source Jump: Show Debug Info"
+      }
+    ],
+    "configuration": {
+      "title": "Vue Source Jump",
+      "properties": {
+        "vueSourceJump.enableComponentTags": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Ctrl+Click from Vue template component tags to component files."
+        },
+        "vueSourceJump.enableTemplateSymbols": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Ctrl+Click from Vue template identifiers to same-file script definitions."
+        },
+        "vueSourceJump.enableFileLineLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Ctrl+Click on file:line and file:line:column references."
+        },
+        "vueSourceJump.enableImportSources": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Ctrl+Click on import/export/require source strings, including Vite and tsconfig path aliases."
+        },
+        "vueSourceJump.aliases": {
+          "type": "object",
+          "default": {
+            "@": "src",
+            "~": "src"
+          },
+          "description": "Workspace-root-relative aliases used when resolving component imports and file links."
+        },
+        "vueSourceJump.componentSearchRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "src",
+            "components",
+            "pages",
+            "views"
+          ],
+          "description": "Workspace-relative folders scanned for auto-imported Vue components."
+        },
+        "vueSourceJump.maxWorkspaceSearchResults": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "description": "Maximum files returned per workspace component search pattern."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "node --check src/extension.js && node --check src/resolver.js",
+    "test": "node test/resolver.test.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "keywords": [
+    "vscode-extension",
+    "vue",
+    "vue2",
+    "vue3",
+    "vite",
+    "alias",
+    "import",
+    "ctrl-click",
+    "go-to-definition",
+    "source-jump"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@vscode/vsce": "^3.9.1"
+  }
+}
