@@ -9,5 +9,7 @@ module.exports = {
   ...require("./project/resolverConfig"),
   ...require("./vue/componentImports"),
   ...require("./vue/componentNames"),
-  ...require("./vue/scriptDefinitions")
+  ...require("./vue/scriptDefinitions"),
+  ...require("./vue/templateExpressions"),
+  ...require("./vue/templateScope")
 };

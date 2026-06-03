@@ -19,15 +19,16 @@
   - Vue component name matching.
   - Component import resolution.
   - Current lightweight Vue script symbol definition lookup.
+  - Template expression and local-scope extraction.
 
 ## Next Phase
 
-Add new Template <-> Script navigation behind new Vue modules:
+Template <-> Script navigation should keep growing behind Vue-specific modules:
 
-- `src/vue/templateExpressions.js`
-- `src/vue/templateScope.js`
 - `src/vue/scriptReferences.js`
 - `src/vue/symbolGraph.js`
 
-The provider should ask `symbolGraph` for definitions and references instead of
-adding ad hoc parsing directly to `extension.js`.
+`templateExpressions.js` and `templateScope.js` already provide the first half
+of the data model. The next step is to add `symbolGraph.js` so the provider can
+ask for definitions and references instead of adding ad hoc parsing directly to
+`extension.js`.
