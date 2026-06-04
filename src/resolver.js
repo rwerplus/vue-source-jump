@@ -16,6 +16,7 @@ module.exports = {
   ...require("./vue/scriptDefinitions"),
   ...require("./vue/scriptReferences"),
   ...require("./vue/symbolGraph"),
+  ...require("./vue/templateAssets"),
   ...require("./vue/templateExpressions"),
   ...require("./vue/templateScope")
 };

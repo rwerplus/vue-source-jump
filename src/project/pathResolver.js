@@ -35,18 +35,19 @@ const DEFAULT_EXTENSIONS = [
 ];
 
 function resolveFileReferencePath(rawPath, currentFile, projectRoot, aliases, workspaceRoot, extensions) {
-  const cleaned = String(rawPath || "").split(/[?#]/)[0].replace(/\\/g, path.sep);
+  const cleaned = stripPathQueryOrHash(String(rawPath || "")).replace(/\\/g, path.sep);
 
   if (!cleaned) {
     return null;
   }
 
-  if (isBarePackagePath(cleaned)) {
+  const aliased = resolveAliasPaths(cleaned, projectRoot, aliases, workspaceRoot);
+
+  if (aliased.length === 0 && isBarePackagePath(cleaned)) {
     return null;
   }
 
   const roots = [];
-  const aliased = resolveAliasPaths(cleaned, projectRoot, aliases, workspaceRoot);
 
   roots.push(...aliased);
 
@@ -73,6 +74,18 @@ function resolveFileReferencePath(rawPath, currentFile, projectRoot, aliases, wo
   }
 
   return null;
+}
+
+function stripPathQueryOrHash(value) {
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if ((char === "?" || char === "#") && index > 0) {
+      return value.slice(0, index);
+    }
+  }
+
+  return value;
 }
 
 function resolveAliasPaths(value, projectRoot, aliases, workspaceRoot) {

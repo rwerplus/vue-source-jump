@@ -2,6 +2,12 @@
 
 All notable changes to Vue Source Jump will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added Ctrl+Click support for Vue template static asset paths in attribute values, including configured aliases such as `@`, `/@`, `~`, `$assets`, `#`, and `@img`, plus `./` and `../` paths.
+
 ## [0.1.1] - 2026-06-03
 
 ### Added

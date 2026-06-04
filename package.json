@@ -82,7 +82,7 @@
         "vueSourceJump.enableImportSources": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Ctrl+Click on import/export/require source strings, including Vite and tsconfig path aliases."
+          "description": "Enable Ctrl+Click on import/export/require source strings and Vue template static asset paths, including Vite and tsconfig path aliases."
         },
         "vueSourceJump.aliases": {
           "type": "object",
