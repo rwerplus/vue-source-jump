@@ -2,7 +2,7 @@
 
 All notable changes to Vue Source Jump will be documented in this file.
 
-## Unreleased
+## [0.1.2] - 2026-06-04
 
 ### Added
 
