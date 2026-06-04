@@ -11,6 +11,7 @@ const {
   findImportSourceAt,
   findProjectRoot,
   findTargetSymbolDefinition,
+  findTemplateAssetSourceAt,
   findVueSymbolDefinition,
   getTagAtOffset,
   loadProjectResolverConfig,
@@ -154,10 +155,12 @@ const deviceCategory = path.join(viteSrc, "constants", "device-category.ts");
 const systemStore = path.join(viteSrc, "store", "modules", "system.ts");
 const patrolTaskApi = path.join(viteSrc, "api", "patrol", "patrolTask.ts");
 const routeParams = path.join(viteSrc, "utils", "routeParams.ts");
+const localTemplateImage = path.join(viteSrc, "views", "home", "alarm", "assets", "images", "local.png");
 
 for (const file of [
   importOwner,
   emptyImage,
+  localTemplateImage,
   mediaDisplay,
   ledgerTree,
   alarmService,
@@ -274,6 +277,55 @@ assertImportResolves("@/components/common/InspectionMediaDisplay.vue", mediaDisp
 assertImportResolves("@/components/LedgerLazyTreeSelect/index.vue", ledgerTree);
 assertImportResolves("@/views/home/alarm/detail/services/alarmMediaService", alarmService);
 assertImportResolves("../components/batchProcessDialog.vue", batchDialog);
+
+const templateAssetText = `<template>
+  <div>
+    <img src="@/assets/images/v-empty.png?url" />
+    <img :src="'/@/assets/images/v-empty.png'" />
+    <IconBadge icon="@/assets/images/v-empty.png" />
+    <img src="../assets/images/local.png" />
+    <source srcset="@/assets/images/v-empty.png 1x, ../assets/images/local.png 2x" />
+  </div>
+</template>`;
+const templateAssetBlocks = parseVueBlocks(templateAssetText);
+
+function assertTemplateAssetResolves(fragment, expected, fromIndex = 0) {
+  const index = templateAssetText.indexOf(fragment, fromIndex);
+  assert.notStrictEqual(index, -1, `Expected template asset fixture to include ${fragment}`);
+  const offset = index + Math.floor(fragment.length / 2);
+  const source = findTemplateAssetSourceAt(
+    templateAssetText,
+    offset,
+    templateAssetBlocks.template
+  );
+
+  assert.ok(source, `Expected template asset source for ${fragment}`);
+  assert.strictEqual(
+    resolveFileReferencePath(
+      source.source,
+      importOwner,
+      viteProject,
+      resolverConfig.aliases,
+      viteProject,
+      resolverConfig.extensions
+    ),
+    expected
+  );
+}
+
+assertTemplateAssetResolves("@/assets/images/v-empty.png?url", emptyImage);
+assertTemplateAssetResolves("/@/assets/images/v-empty.png", emptyImage);
+assertTemplateAssetResolves(
+  "@/assets/images/v-empty.png",
+  emptyImage,
+  templateAssetText.indexOf("<IconBadge")
+);
+assertTemplateAssetResolves("../assets/images/local.png", localTemplateImage);
+assertTemplateAssetResolves(
+  "../assets/images/local.png",
+  localTemplateImage,
+  templateAssetText.indexOf("srcset")
+);
 
 function assertBindingResolves(name, expectedFile, expectedSymbol) {
   const offset = importText.indexOf(name);

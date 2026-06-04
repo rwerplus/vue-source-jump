@@ -13,6 +13,7 @@ const {
   findFileLineReferenceAt,
   findImportedSymbolUsageAt,
   findTargetSymbolDefinition,
+  findTemplateAssetSourceAt,
   findVueDefinitionAt,
   findVueSymbolDefinition,
   getTagAtOffset,
@@ -171,6 +172,25 @@ class VueSourceJumpDefinitionProvider {
     }
 
     if (config.enableImportSources) {
+      const templateAsset = inTemplate
+        ? findTemplateAssetSourceAt(text, offset, blocks.template)
+        : null;
+
+      if (templateAsset) {
+        const target = resolveFileReferencePath(
+          templateAsset.source,
+          document.uri.fsPath,
+          projectRoot,
+          resolverConfig.aliases,
+          workspaceRoot,
+          resolverConfig.extensions
+        );
+
+        if (target) {
+          return createLocation(target, 1, 1);
+        }
+      }
+
       const importedUsage = resolveImportedSymbolUsage(
         document.uri.fsPath,
         text,
