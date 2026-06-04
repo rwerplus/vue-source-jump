@@ -1,14 +1,15 @@
 "use strict";
 
 const {
+  escapeRegExp,
   findTagEnd,
   isIgnoredTagStart,
   readTagName
 } = require("../core/textUtils");
 
-const TEMPLATE_ASSET_PATH_RE = /(?:\/@|@|~|\.{1,2})[\\/][^"'`\s<>{}\]),]+/g;
+const DEFAULT_ASSET_PATH_PREFIXES = ["/@", "@", "~", ".", ".."];
 
-function findTemplateAssetSourceAt(text, offset, templateBlock) {
+function findTemplateAssetSourceAt(text, offset, templateBlock, aliases) {
   if (
     !templateBlock ||
     offset < templateBlock.contentStart ||
@@ -26,7 +27,8 @@ function findTemplateAssetSourceAt(text, offset, templateBlock) {
   const token = findAssetPathTokenAt(
     attribute.value,
     attribute.valueStart,
-    offset
+    offset,
+    aliases
   );
 
   if (!token) {
@@ -152,12 +154,11 @@ function scanAttributeValueAt(text, offset, start, end) {
   return null;
 }
 
-function findAssetPathTokenAt(value, valueStart, offset) {
+function findAssetPathTokenAt(value, valueStart, offset, aliases) {
+  const assetPathRe = buildAssetPathRegExp(aliases);
   let match;
 
-  TEMPLATE_ASSET_PATH_RE.lastIndex = 0;
-
-  while ((match = TEMPLATE_ASSET_PATH_RE.exec(value))) {
+  while ((match = assetPathRe.exec(value))) {
     const source = trimTrailingPathPunctuation(match[0]);
     const start = valueStart + match.index;
     const end = start + source.length;
@@ -172,6 +173,40 @@ function findAssetPathTokenAt(value, valueStart, offset) {
   }
 
   return null;
+}
+
+function buildAssetPathRegExp(aliases) {
+  const prefixes = collectAssetPathPrefixes(aliases);
+  const prefixPattern = prefixes.map(escapeRegExp).join("|");
+
+  return new RegExp(
+    "(?:" + prefixPattern + ")[\\\\/][^\"'`\\s<>{}\\]),]+",
+    "g"
+  );
+}
+
+function collectAssetPathPrefixes(aliases) {
+  const aliasPrefixes = aliases && typeof aliases === "object"
+    ? Object.keys(aliases)
+    : [];
+
+  return uniqueStrings([...aliasPrefixes, ...DEFAULT_ASSET_PATH_PREFIXES])
+    .map(normalizePathPrefix)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+}
+
+function normalizePathPrefix(value) {
+  const normalized = String(value || "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/\/+$/g, "");
+
+  return normalized === "/" ? "" : normalized;
+}
+
+function uniqueStrings(values) {
+  return Array.from(new Set(values));
 }
 
 function trimTrailingPathPunctuation(value) {

@@ -173,7 +173,12 @@ class VueSourceJumpDefinitionProvider {
 
     if (config.enableImportSources) {
       const templateAsset = inTemplate
-        ? findTemplateAssetSourceAt(text, offset, blocks.template)
+        ? findTemplateAssetSourceAt(
+          text,
+          offset,
+          blocks.template,
+          resolverConfig.aliases
+        )
         : null;
 
       if (templateAsset) {

@@ -203,6 +203,9 @@ export default {
       '/@': path.resolve(__dirname, './src'),
       '~': path.resolve(__dirname, './'),
       '@': path.resolve(__dirname, './src'),
+      '$assets': path.resolve(__dirname, './src/assets'),
+      '#': path.resolve(__dirname, './src'),
+      '@img': path.resolve(__dirname, './src/assets/images'),
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
   },
@@ -227,11 +230,17 @@ const resolverConfig = loadProjectResolverConfig(viteProject, {}, viteProject);
 assert.strictEqual(resolverConfig.aliases["@"], viteSrc);
 assert.strictEqual(resolverConfig.aliases["/@"], viteSrc);
 assert.strictEqual(resolverConfig.aliases["~"], viteProject);
+assert.strictEqual(resolverConfig.aliases["$assets"], path.join(viteSrc, "assets"));
+assert.strictEqual(resolverConfig.aliases["#"], viteSrc);
+assert.strictEqual(resolverConfig.aliases["@img"], path.join(viteSrc, "assets", "images"));
 assert.ok(resolverConfig.extensions.includes(".ts"));
 assert.ok(resolverConfig.extensions.includes(".vue"));
 
 const importText = `import emptyImg from '@/assets/images/v-empty.png'
 import emptyImg2 from '/@/assets/images/v-empty.png'
+import dollarAsset from '$assets/images/v-empty.png'
+import hashAsset from '#/assets/images/v-empty.png'
+import atImageAsset from '@img/v-empty.png'
 import { getPointType, getPointPage, deletePointApi, getLabelList } from '@/api/point/point'
 import { ElMessageBox } from 'element-plus'
 import VideoPlayer from '@/components/VideoPlayer/index.vue'
@@ -273,6 +282,9 @@ function assertImportResolves(fragment, expected) {
 
 assertImportResolves("@/assets/images/v-empty.png", emptyImage);
 assertImportResolves("/@/assets/images/v-empty.png", emptyImage);
+assertImportResolves("$assets/images/v-empty.png", emptyImage);
+assertImportResolves("#/assets/images/v-empty.png", emptyImage);
+assertImportResolves("@img/v-empty.png", emptyImage);
 assertImportResolves("@/components/common/InspectionMediaDisplay.vue", mediaDisplay);
 assertImportResolves("@/components/LedgerLazyTreeSelect/index.vue", ledgerTree);
 assertImportResolves("@/views/home/alarm/detail/services/alarmMediaService", alarmService);
@@ -285,6 +297,9 @@ const templateAssetText = `<template>
     <IconBadge icon="@/assets/images/v-empty.png" />
     <img src="../assets/images/local.png" />
     <source srcset="@/assets/images/v-empty.png 1x, ../assets/images/local.png 2x" />
+    <img data-symbol="$assets/images/v-empty.png" />
+    <img data-hash="#/assets/images/v-empty.png" />
+    <img data-atimg="@img/v-empty.png" />
   </div>
 </template>`;
 const templateAssetBlocks = parseVueBlocks(templateAssetText);
@@ -296,7 +311,8 @@ function assertTemplateAssetResolves(fragment, expected, fromIndex = 0) {
   const source = findTemplateAssetSourceAt(
     templateAssetText,
     offset,
-    templateAssetBlocks.template
+    templateAssetBlocks.template,
+    resolverConfig.aliases
   );
 
   assert.ok(source, `Expected template asset source for ${fragment}`);
@@ -326,6 +342,9 @@ assertTemplateAssetResolves(
   localTemplateImage,
   templateAssetText.indexOf("srcset")
 );
+assertTemplateAssetResolves("$assets/images/v-empty.png", emptyImage);
+assertTemplateAssetResolves("#/assets/images/v-empty.png", emptyImage);
+assertTemplateAssetResolves("@img/v-empty.png", emptyImage);
 
 function assertBindingResolves(name, expectedFile, expectedSymbol) {
   const offset = importText.indexOf(name);
