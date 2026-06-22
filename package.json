@@ -1,6 +1,6 @@
 {
   "name": "vue-source-jump",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "displayName": "Vue Source Jump",
   "description": "Vue2/Vue3 Ctrl+Click 跳转插件，支持 import、Vite alias、tsconfig paths、组件、template/script 跳转。",
   "publisher": "guofeng",

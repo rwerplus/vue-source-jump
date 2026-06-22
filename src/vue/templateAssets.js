@@ -18,63 +18,69 @@ function findTemplateAssetSourceAt(text, offset, templateBlock, aliases) {
     return null;
   }
 
-  const attribute = findTemplateAttributeValueAt(text, offset, templateBlock);
-
-  if (!attribute) {
-    return null;
+  for (const reference of collectTemplateAssetReferences(text, templateBlock, aliases)) {
+    if (offset >= reference.start && offset <= reference.end) {
+      return reference;
+    }
   }
 
-  const token = findAssetPathTokenAt(
-    attribute.value,
-    attribute.valueStart,
-    offset,
-    aliases
-  );
-
-  if (!token) {
-    return null;
-  }
-
-  return {
-    source: token.source,
-    attrName: attribute.name,
-    start: token.start,
-    end: token.end
-  };
+  return null;
 }
 
-function findTemplateAttributeValueAt(text, offset, templateBlock) {
-  const tagStart = text.lastIndexOf("<", offset);
+function collectTemplateAssetReferences(text, templateBlock, aliases) {
+  const results = [];
 
-  if (tagStart < templateBlock.contentStart) {
-    return null;
+  if (!templateBlock) {
+    return results;
   }
 
-  const previousTagEnd = text.lastIndexOf(">", offset);
+  walkTemplateTags(text, templateBlock, (tagBodyStart, tagEnd) => {
+    for (const attribute of collectAttributeValues(text, tagBodyStart, tagEnd)) {
+      collectAssetPathTokens(
+        attribute.value,
+        attribute.valueStart,
+        aliases,
+        results
+      );
+    }
+  });
 
-  if (previousTagEnd > tagStart || isIgnoredTagStart(text, tagStart)) {
-    return null;
-  }
-
-  const tagEnd = findTagEnd(text, tagStart);
-
-  if (
-    tagEnd === -1 ||
-    tagEnd > templateBlock.contentEnd ||
-    offset > tagEnd
-  ) {
-    return null;
-  }
-
-  return scanAttributeValueAt(text, offset, tagStart + 1, tagEnd);
+  return results;
 }
 
-function scanAttributeValueAt(text, offset, start, end) {
+function walkTemplateTags(text, templateBlock, visitTagBody) {
+  let index = templateBlock.contentStart;
+
+  while (index <= templateBlock.contentEnd) {
+    const tagStart = text.indexOf("<", index);
+
+    if (tagStart === -1 || tagStart > templateBlock.contentEnd) {
+      break;
+    }
+
+    if (isIgnoredTagStart(text, tagStart)) {
+      index = tagStart + 1;
+      continue;
+    }
+
+    const tagEnd = findTagEnd(text, tagStart);
+
+    if (tagEnd === -1 || tagEnd > templateBlock.contentEnd) {
+      break;
+    }
+
+    visitTagBody(tagStart + 1, tagEnd);
+    index = tagEnd + 1;
+  }
+}
+
+function collectAttributeValues(text, start, end) {
+  const attributes = [];
   let index = start;
   const tagName = readTagName(text, index);
 
   if (!tagName) {
-    return null;
+    return attributes;
   }
 
   index += tagName.length;
@@ -83,7 +89,7 @@ function scanAttributeValueAt(text, offset, start, end) {
     index = skipWhitespace(text, index, end);
 
     if (index >= end || text[index] === "/") {
-      return null;
+      break;
     }
 
     const nameStart = index;
@@ -115,7 +121,7 @@ function scanAttributeValueAt(text, offset, start, end) {
     index = skipWhitespace(text, index, end);
 
     if (index >= end) {
-      return null;
+      break;
     }
 
     const quote = text[index];
@@ -141,38 +147,34 @@ function scanAttributeValueAt(text, offset, start, end) {
       valueEnd = index;
     }
 
-    if (offset >= valueStart && offset <= valueEnd) {
-      return {
-        name,
-        value: text.slice(valueStart, valueEnd),
-        valueStart,
-        valueEnd
-      };
-    }
+    attributes.push({
+      name,
+      value: text.slice(valueStart, valueEnd),
+      valueStart,
+      valueEnd
+    });
   }
 
-  return null;
+  return attributes;
 }
 
-function findAssetPathTokenAt(value, valueStart, offset, aliases) {
+function collectAssetPathTokens(value, valueStart, aliases, results) {
   const assetPathRe = buildAssetPathRegExp(aliases);
   let match;
+
+  assetPathRe.lastIndex = 0;
 
   while ((match = assetPathRe.exec(value))) {
     const source = trimTrailingPathPunctuation(match[0]);
     const start = valueStart + match.index;
     const end = start + source.length;
 
-    if (offset >= start && offset <= end) {
-      return {
-        source,
-        start,
-        end
-      };
-    }
+    results.push({
+      source,
+      start,
+      end
+    });
   }
-
-  return null;
 }
 
 function buildAssetPathRegExp(aliases) {
@@ -232,5 +234,6 @@ function skipWhitespace(text, index, end) {
 }
 
 module.exports = {
+  collectTemplateAssetReferences,
   findTemplateAssetSourceAt
 };

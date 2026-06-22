@@ -6,6 +6,7 @@ const os = require("os");
 const path = require("path");
 const {
   collectComponentCandidates,
+  collectTemplateAssetReferences,
   findFileLineReferenceAt,
   findImportBindingAt,
   findImportSourceAt,
@@ -399,6 +400,78 @@ assert.strictEqual(
     resolverConfig.extensions
   ),
   null
+);
+
+const aliasTrapProject = fs.mkdtempSync(path.join(os.tmpdir(), "vue-source-jump-alias-trap-"));
+const aliasTrapSrc = path.join(aliasTrapProject, "src");
+const aliasTrapViewDir = path.join(
+  aliasTrapSrc,
+  "views",
+  "home",
+  "offlineTask",
+  "offlineTaskDialog"
+);
+const aliasTrapWrongDir = path.join(
+  aliasTrapViewDir,
+  "@",
+  "assets",
+  "images",
+  "offlineTask"
+);
+const aliasTrapCorrectImage = path.join(
+  aliasTrapSrc,
+  "assets",
+  "images",
+  "offlineTask",
+  "directoryIcon.png"
+);
+const aliasTrapWrongImage = path.join(aliasTrapWrongDir, "directoryIcon.png");
+const aliasTrapVue = path.join(aliasTrapViewDir, "OfflineTaskDialog.vue");
+
+fs.mkdirSync(aliasTrapWrongDir, { recursive: true });
+fs.mkdirSync(path.dirname(aliasTrapCorrectImage), { recursive: true });
+fs.writeFileSync(aliasTrapCorrectImage, "");
+fs.writeFileSync(aliasTrapWrongImage, "");
+fs.writeFileSync(
+  aliasTrapVue,
+  `<template><img src="@/assets/images/offlineTask/directoryIcon.png" /></template>`
+);
+
+assert.strictEqual(
+  resolveFileReferencePath(
+    "@/assets/images/offlineTask/directoryIcon.png",
+    aliasTrapVue,
+    aliasTrapProject,
+    { "@": aliasTrapSrc },
+    aliasTrapProject
+  ),
+  aliasTrapCorrectImage
+);
+
+const nestedTemplateVue = `<template>
+  <div>
+    <img src="@/assets/images/offlineTask/question.png" alt="" />
+    <template v-if="show">
+      <span>x</span>
+    </template>
+    <img src="@/assets/images/offlineTask/directoryIcon.png" alt="" />
+  </div>
+</template>`;
+const nestedBlocks = parseVueBlocks(nestedTemplateVue);
+const nestedRefs = collectTemplateAssetReferences(
+  nestedTemplateVue,
+  nestedBlocks.template,
+  { "@": aliasTrapSrc }
+);
+
+assert.strictEqual(nestedRefs.length, 2);
+assert.strictEqual(
+  nestedRefs[0].source,
+  "@/assets/images/offlineTask/question.png"
+);
+assert.strictEqual(
+  nestedRefs[1].source,
+  "@/assets/images/offlineTask/directoryIcon.png"
 );
 
 console.log("resolver.test.js passed");

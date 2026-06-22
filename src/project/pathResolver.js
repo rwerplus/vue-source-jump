@@ -42,6 +42,19 @@ function resolveFileReferencePath(rawPath, currentFile, projectRoot, aliases, wo
   }
 
   const aliased = resolveAliasPaths(cleaned, projectRoot, aliases, workspaceRoot);
+  const aliasLike = isAliasLikePath(cleaned, aliases);
+
+  if (aliasLike) {
+    for (const candidate of aliased) {
+      const resolved = resolveExistingFile(candidate, extensions);
+
+      if (resolved) {
+        return resolved;
+      }
+    }
+
+    return null;
+  }
 
   if (aliased.length === 0 && isBarePackagePath(cleaned)) {
     return null;
@@ -88,6 +101,32 @@ function stripPathQueryOrHash(value) {
   return value;
 }
 
+function isAliasLikePath(value, aliases) {
+  const normalized = value.replace(/\\/g, "/");
+  const prefixes = collectAliasPrefixes(aliases);
+
+  return prefixes.some(
+    (alias) => normalized === alias || normalized.startsWith(`${alias}/`)
+  );
+}
+
+function collectAliasPrefixes(aliases) {
+  const configured = aliases && typeof aliases === "object"
+    ? Object.keys(aliases)
+    : [];
+
+  return unique([
+    ...configured,
+    ...Object.keys(DEFAULT_ALIASES),
+    "/@",
+    "@",
+    "~"
+  ])
+    .map((value) => String(value || "").trim().replace(/\\/g, "/").replace(/\/+$/g, ""))
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+}
+
 function resolveAliasPaths(value, projectRoot, aliases, workspaceRoot) {
   if (!projectRoot || !aliases || typeof aliases !== "object") {
     return [];
@@ -95,8 +134,9 @@ function resolveAliasPaths(value, projectRoot, aliases, workspaceRoot) {
 
   const matches = [];
   const bases = unique([projectRoot, workspaceRoot].filter(Boolean));
+  const sortedAliases = Object.keys(aliases).sort((a, b) => b.length - a.length);
 
-  for (const alias of Object.keys(aliases)) {
+  for (const alias of sortedAliases) {
     const target = aliases[alias];
     const normalizedAlias = alias.replace(/\\/g, "/");
     const normalizedValue = value.replace(/\\/g, "/");
@@ -165,6 +205,8 @@ function isBarePackagePath(value) {
 module.exports = {
   DEFAULT_ALIASES,
   DEFAULT_EXTENSIONS,
+  collectAliasPrefixes,
+  isAliasLikePath,
   normalizeExtensions,
   resolveFileReferencePath
 };

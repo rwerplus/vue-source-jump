@@ -2,6 +2,16 @@
 
 All notable changes to Vue Source Jump will be documented in this file.
 
+## [0.1.3] - 2026-06-22
+
+### Fixed
+
+- Template asset paths such as `@/assets/...` now resolve only through configured aliases, preventing fallback to a literal `@` folder next to the current `.vue` file.
+- Added `DocumentLinkProvider` for Vue template asset paths so Ctrl+Click prefers alias-resolved files over Volar's relative-path jump.
+- Template asset lookup now runs before other Vue definition handlers.
+- Fixed Vue SFC `<template>` block parsing when nested `<template v-if>` / slot fragments are present. Previously only asset paths before the first inner `</template>` could be jumped.
+- This fixes the issue where only the first image `src` per file was navigable.
+
 ## [0.1.2] - 2026-06-04
 
 ### Added

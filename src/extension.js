@@ -13,6 +13,7 @@ const {
   findFileLineReferenceAt,
   findImportedSymbolUsageAt,
   findTargetSymbolDefinition,
+  collectTemplateAssetReferences,
   findTemplateAssetSourceAt,
   findVueDefinitionAt,
   findVueSymbolDefinition,
@@ -38,9 +39,11 @@ function activate(context) {
   ];
 
   const provider = new VueSourceJumpDefinitionProvider();
+  const documentLinkProvider = new VueSourceJumpDocumentLinkProvider();
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(selector, provider),
+    vscode.languages.registerDocumentLinkProvider(selector, documentLinkProvider),
     vscode.commands.registerCommand("vueSourceJump.showDebugInfo", showDebugInfo),
     vscode.commands.registerCommand("vueSourceJump.nextReference", () => navigateReference("next")),
     vscode.commands.registerCommand("vueSourceJump.previousReference", () => navigateReference("previous"))
@@ -61,6 +64,34 @@ class VueSourceJumpDefinitionProvider {
       config,
       workspaceRoot
     );
+
+    if (isVueFile(document.uri.fsPath) && config.enableImportSources) {
+      const blocks = parseVueBlocks(text);
+      const inTemplate = blocks.template && isInside(offset, blocks.template);
+
+      if (inTemplate) {
+        const templateAsset = findTemplateAssetSourceAt(
+          text,
+          offset,
+          blocks.template,
+          resolverConfig.aliases
+        );
+
+        if (templateAsset) {
+          const target = resolveTemplateAssetTarget(
+            templateAsset.source,
+            document.uri.fsPath,
+            projectRoot,
+            resolverConfig,
+            workspaceRoot
+          );
+
+          if (target) {
+            return createLocation(target, 1, 1);
+          }
+        }
+      }
+    }
 
     if (config.enableImportSources) {
       const importBinding = findImportBindingAt(text, offset);
@@ -172,30 +203,6 @@ class VueSourceJumpDefinitionProvider {
     }
 
     if (config.enableImportSources) {
-      const templateAsset = inTemplate
-        ? findTemplateAssetSourceAt(
-          text,
-          offset,
-          blocks.template,
-          resolverConfig.aliases
-        )
-        : null;
-
-      if (templateAsset) {
-        const target = resolveFileReferencePath(
-          templateAsset.source,
-          document.uri.fsPath,
-          projectRoot,
-          resolverConfig.aliases,
-          workspaceRoot,
-          resolverConfig.extensions
-        );
-
-        if (target) {
-          return createLocation(target, 1, 1);
-        }
-      }
-
       const importedUsage = resolveImportedSymbolUsage(
         document.uri.fsPath,
         text,
@@ -266,6 +273,80 @@ class VueSourceJumpDefinitionProvider {
 
     return null;
   }
+}
+
+class VueSourceJumpDocumentLinkProvider {
+  provideDocumentLinks(document) {
+    const config = readConfig();
+
+    if (!config.enableImportSources || !isVueFile(document.uri.fsPath)) {
+      return [];
+    }
+
+    const text = document.getText();
+    const workspaceRoot = getWorkspaceRoot(document);
+    const projectRoot = findProjectRoot(document.uri.fsPath, workspaceRoot);
+    const resolverConfig = loadProjectResolverConfig(
+      projectRoot,
+      config,
+      workspaceRoot
+    );
+    const blocks = parseVueBlocks(text);
+
+    if (!blocks.template) {
+      return [];
+    }
+
+    const references = collectTemplateAssetReferences(
+      text,
+      blocks.template,
+      resolverConfig.aliases
+    );
+    const links = [];
+
+    for (const reference of references) {
+      const target = resolveTemplateAssetTarget(
+        reference.source,
+        document.uri.fsPath,
+        projectRoot,
+        resolverConfig,
+        workspaceRoot
+      );
+
+      if (!target) {
+        continue;
+      }
+
+      links.push(
+        new vscode.DocumentLink(
+          new vscode.Range(
+            document.positionAt(reference.start),
+            document.positionAt(reference.end)
+          ),
+          vscode.Uri.file(target)
+        )
+      );
+    }
+
+    return links;
+  }
+}
+
+function resolveTemplateAssetTarget(
+  source,
+  ownerFile,
+  projectRoot,
+  resolverConfig,
+  workspaceRoot
+) {
+  return resolveFileReferencePath(
+    source,
+    ownerFile,
+    projectRoot,
+    resolverConfig.aliases,
+    workspaceRoot,
+    resolverConfig.extensions
+  );
 }
 
 async function findWorkspaceComponent(tagName, config, projectRoot, token) {

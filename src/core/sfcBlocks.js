@@ -26,8 +26,7 @@ function parseVueBlocks(text) {
       continue;
     }
 
-    const closeTag = `</${tag}>`;
-    const closeStart = text.toLowerCase().indexOf(closeTag, openEnd + 1);
+    const closeStart = findMatchingBlockCloseTag(text, tag, openEnd + 1);
 
     if (closeStart === -1) {
       continue;
@@ -48,10 +47,71 @@ function parseVueBlocks(text) {
       blocks.scripts.push(block);
     }
 
-    VUE_BLOCK_RE.lastIndex = closeStart + closeTag.length;
+    VUE_BLOCK_RE.lastIndex = closeStart + `</${tag}>`.length;
   }
 
   return blocks;
+}
+
+function findMatchingBlockCloseTag(text, tagName, startIndex) {
+  let depth = 1;
+  let index = startIndex;
+  let quote = "";
+
+  while (index < text.length && depth > 0) {
+    const char = text[index];
+
+    if (quote) {
+      if (char === quote && text[index - 1] !== "\\") {
+        quote = "";
+      }
+
+      index += 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      index += 1;
+      continue;
+    }
+
+    if (char === "<" && text.startsWith("<!--", index)) {
+      const commentEnd = text.indexOf("-->", index + 4);
+
+      index = commentEnd === -1 ? text.length : commentEnd + 3;
+      continue;
+    }
+
+    if (char === "<") {
+      const rest = text.slice(index);
+      const openMatch = rest.match(new RegExp(`^<${tagName}\\b`, "i"));
+      const closeMatch = rest.match(new RegExp(`^</${tagName}\\s*>`, "i"));
+
+      if (closeMatch) {
+        depth -= 1;
+
+        if (depth === 0) {
+          return index;
+        }
+
+        index += closeMatch[0].length;
+        continue;
+      }
+
+      if (openMatch) {
+        depth += 1;
+        const nestedOpenEnd = findTagEnd(text, index);
+
+        index = nestedOpenEnd === -1 ? text.length : nestedOpenEnd + 1;
+        continue;
+      }
+    }
+
+    index += 1;
+  }
+
+  return -1;
 }
 
 function getTagAtOffset(text, offset, templateBlock) {
