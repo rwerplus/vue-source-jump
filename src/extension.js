@@ -15,6 +15,7 @@ const {
   findTargetSymbolDefinition,
   collectTemplateAssetReferences,
   findTemplateAssetSourceAt,
+  findScriptDefinitionTemplateUsages,
   findVueDefinitionAt,
   findVueSymbolDefinition,
   getTagAtOffset,
@@ -239,6 +240,14 @@ class VueSourceJumpDefinitionProvider {
       return componentRefMember;
     }
 
+    if (config.enableTemplateSymbols && inScript) {
+      const templateUsages = findScriptDefinitionTemplateUsages(graph, offset);
+
+      if (templateUsages && templateUsages.length > 0) {
+        return createDocumentLocationsFromRanges(document, templateUsages);
+      }
+    }
+
     const graphDefinition = findVueDefinitionAt(
       graph,
       offset
@@ -330,6 +339,17 @@ class VueSourceJumpDocumentLinkProvider {
 
     return links;
   }
+}
+
+function createDocumentLocationsFromRanges(document, ranges) {
+  const locations = ranges.map((range) =>
+    new vscode.Location(
+      document.uri,
+      document.positionAt(range.start)
+    )
+  );
+
+  return locations.length === 1 ? locations[0] : locations;
 }
 
 function resolveTemplateAssetTarget(

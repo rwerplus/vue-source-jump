@@ -12,6 +12,10 @@ All notable changes to Vue Source Jump will be documented in this file.
 - Fixed Vue SFC `<template>` block parsing when nested `<template v-if>` / slot fragments are present. Previously only asset paths before the first inner `</template>` could be jumped.
 - This fixes the issue where only the first image `src` per file was navigable.
 
+### Added
+
+- Clicking a Vue 3 script symbol definition (such as `const currentDirectory = ref('')`) now jumps to all matching template usages. Multiple usages open VS Code's multi-target picker; a single usage jumps directly.
+
 ## [0.1.2] - 2026-06-04
 
 ### Added

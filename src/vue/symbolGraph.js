@@ -10,7 +10,8 @@ const { findVueSymbolDefinition } = require("./scriptDefinitions");
 const {
   collectScriptIdentifierReferences,
   findScriptIdentifierAt,
-  findScriptNavigationAt
+  findScriptNavigationAt,
+  collectTemplateReferencesForScriptSymbol
 } = require("./scriptReferences");
 
 function buildVueSymbolGraph(text) {
@@ -106,6 +107,46 @@ function findTemplateReferenceAt(graph, offset) {
     .sort((a, b) => (a.end - a.start) - (b.end - b.start));
 
   return matches[0] || null;
+}
+
+function findScriptDefinitionTemplateUsages(graph, offset) {
+  if (!graph || !graph.blocks || !Array.isArray(graph.blocks.scripts)) {
+    return null;
+  }
+
+  const scriptBlock = graph.blocks.scripts.find((block) =>
+    offset >= block.contentStart && offset <= block.contentEnd
+  );
+
+  if (!scriptBlock) {
+    return null;
+  }
+
+  const identifier = findScriptIdentifierAt(graph.text, scriptBlock, offset);
+
+  if (!identifier) {
+    return null;
+  }
+
+  const definitionOffset = findVueSymbolDefinition(graph.text, identifier.name);
+
+  if (typeof definitionOffset !== "number") {
+    return null;
+  }
+
+  const isDefinition = offset >= definitionOffset &&
+    offset <= definitionOffset + identifier.name.length;
+
+  if (!isDefinition) {
+    return null;
+  }
+
+  const templateReferences = collectTemplateReferencesForScriptSymbol(
+    graph,
+    identifier.name
+  );
+
+  return templateReferences.length > 0 ? templateReferences : null;
 }
 
 function collectVueReferenceLocationsAt(graph, offset) {
@@ -284,6 +325,7 @@ function isInside(offset, block) {
 module.exports = {
   buildVueSymbolGraph,
   collectVueReferenceLocationsAt,
+  findScriptDefinitionTemplateUsages,
   findTemplateReferenceAt,
   findVueSymbolAt,
   findVueDefinitionAt

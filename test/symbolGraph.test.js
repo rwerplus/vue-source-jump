@@ -5,6 +5,7 @@ const {
   buildVueSymbolGraph,
   collectVueReferenceLocationsAt,
   createWorkspaceExcludeGlob,
+  findScriptDefinitionTemplateUsages,
   findTemplateReferenceAt,
   findVueDefinitionAt
 } = require("../src/resolver");
@@ -122,5 +123,37 @@ assert.strictEqual(
   createWorkspaceExcludeGlob(["node_modules", "dist", "build"]),
   "**/{node_modules,dist,build}/**"
 );
+
+const multiTemplateSource = `<template>
+  <div>{{ currentDirectory }}</div>
+  <span :title="currentDirectory">{{ currentDirectory }}</span>
+</template>
+<script setup>
+const currentDirectory = ref('')
+</script>`;
+const multiGraph = buildVueSymbolGraph(multiTemplateSource);
+const definitionOffset = multiTemplateSource.indexOf("currentDirectory", multiTemplateSource.indexOf("const "));
+const usages = findScriptDefinitionTemplateUsages(multiGraph, definitionOffset);
+
+assert.strictEqual(usages.length, 3);
+assert.ok(usages.every((usage) => usage.name === "currentDirectory"));
+assert.deepStrictEqual(
+  usages.map((usage) => multiTemplateSource.slice(usage.start, usage.end)),
+  ["currentDirectory", "currentDirectory", "currentDirectory"]
+);
+
+const singleTemplateSource = `<template>
+  <div>{{ currentDirectory }}</div>
+</template>
+<script setup>
+const currentDirectory = ref('')
+</script>`;
+const singleGraph = buildVueSymbolGraph(singleTemplateSource);
+const singleUsages = findScriptDefinitionTemplateUsages(
+  singleGraph,
+  singleTemplateSource.indexOf("currentDirectory", singleTemplateSource.indexOf("const "))
+);
+
+assert.strictEqual(singleUsages.length, 1);
 
 console.log("symbolGraph.test.js passed");

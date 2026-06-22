@@ -63,6 +63,12 @@ function findScriptNavigationAt(graph, offset) {
 }
 
 function findFirstTemplateReference(graph, name) {
+  const references = collectTemplateReferencesForScriptSymbol(graph, name);
+
+  return references[0] || null;
+}
+
+function collectTemplateReferencesForScriptSymbol(graph, name) {
   const references = graph.template && Array.isArray(graph.template.references)
     ? graph.template.references
     : [];
@@ -70,10 +76,10 @@ function findFirstTemplateReference(graph, name) {
     ? graph.template.locals
     : [];
 
-  return references.find((reference) =>
+  return references.filter((reference) =>
     reference.name === name &&
     !findTemplateLocalDefinition(locals, reference)
-  ) || null;
+  );
 }
 
 function collectScriptIdentifierReferences(graph, name) {
@@ -246,6 +252,7 @@ function escapeRegExp(value) {
 
 module.exports = {
   collectScriptIdentifierReferences,
+  collectTemplateReferencesForScriptSymbol,
   findFirstTemplateReference,
   findScriptIdentifierAt,
   findScriptMemberAccessAt,
